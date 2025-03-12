@@ -9,6 +9,7 @@ import de.sesu8642.feudaltactics.ingame.AutoSaveRepository;
 import de.sesu8642.feudaltactics.lib.gamestate.*;
 import de.sesu8642.feudaltactics.lib.gamestate.Player.Type;
 import de.sesu8642.feudaltactics.lib.ingame.botai.Intelligence;
+import de.sesu8642.feudaltactics.renderer.MapRenderer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +54,7 @@ public class EditorController {
         gameState = new GameState();
         ArrayList<Player> players = new ArrayList<>();
         players.add(new Player(0, Type.LOCAL_PLAYER));
-        for (int i = 1; i < 6; i++) {
+        for (int i = 1; i < MapRenderer.PLAYER_COLOR_PALETTE.size(); i++) {
             players.add(new Player(i, Type.LOCAL_BOT));
         }
         GameStateHelper.initializeMap(gameState, players, 0, 0, 0F, null);

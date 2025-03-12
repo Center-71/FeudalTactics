@@ -13,6 +13,7 @@ public class NewGamePreferences {
     private MapSizes mapSize;
     private Densities density;
     private int startingPosition;
+    private int numberOfPlayers;
 
     /**
      * Constructor.
@@ -22,11 +23,12 @@ public class NewGamePreferences {
      * @param density          density of the map for this game
      * @param startingPosition starting position index of the human player
      */
-    public NewGamePreferences(Intelligence botIntelligence, MapSizes mapSize, Densities density, int startingPosition) {
+    public NewGamePreferences(Intelligence botIntelligence, MapSizes mapSize, Densities density, int startingPosition, int numberOfPlayers) {
         this.botIntelligence = botIntelligence;
         this.mapSize = mapSize;
         this.density = density;
         this.startingPosition = startingPosition;
+	this.numberOfPlayers = numberOfPlayers;
     }
 
     public Intelligence getBotIntelligence() {
@@ -59,6 +61,14 @@ public class NewGamePreferences {
 
     public void setStartingPosition(int startingPosition) {
         this.startingPosition = startingPosition;
+    }
+
+    public int getNumberOfPlayers() {
+        return numberOfPlayers;
+    }
+
+    public void setNumberOfPlayers(int numberOfPlayers) {
+        this.numberOfPlayers = numberOfPlayers;
     }
 
     /**

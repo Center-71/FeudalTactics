@@ -180,7 +180,7 @@ public class IngameScreen extends GameScreen {
         clearCache();
         if (previousCachedGameState.getScenarioMap() == ScenarioMap.NONE) {
             eventBus.post(new RegenerateMapEvent(parameterInputStage.getBotIntelligence(),
-                    new MapParameters(parameterInputStage.getStartingPosition(), parameterInputStage.getSeedParam(),
+                    new MapParameters(parameterInputStage.getStartingPosition(), parameterInputStage.getNumberOfPlayers(), parameterInputStage.getSeedParam(),
                             parameterInputStage.getMapSizeParam().getAmountOfTiles(),
                             parameterInputStage.getMapDensityParam().getDensityFloat())));
             activateStage(IngameStages.PARAMETERS);
@@ -540,18 +540,24 @@ public class IngameScreen extends GameScreen {
         parameterInputStage.copyButton.addListener(new ExceptionLoggingChangeListener(
                 () -> Gdx.app.getClipboard().setContents(parameterInputStage.seedTextField.getText())));
 
+        parameterInputStage.minusButton.addListener(new ExceptionLoggingChangeListener(
+                () -> parameterInputStage.setNumberOfPlayers(parameterInputStage.getNumberOfPlayers()-1)));
+
+        parameterInputStage.plusButton.addListener(new ExceptionLoggingChangeListener(
+                () -> parameterInputStage.setNumberOfPlayers(parameterInputStage.getNumberOfPlayers()+1)));
+
         Stream.of(parameterInputStage.seedTextField, parameterInputStage.randomButton, parameterInputStage.sizeSelect,
-                        parameterInputStage.densitySelect, parameterInputStage.startingPositionSelect,
+                        parameterInputStage.densitySelect, parameterInputStage.startingPositionSelect,parameterInputStage.minusButton,parameterInputStage.plusButton,
                         parameterInputStage.pasteButton, parameterInputStage.difficultySelect)
                 .forEach(actor -> actor.addListener(new ExceptionLoggingChangeListener(() -> {
                     eventBus.post(new RegenerateMapEvent(parameterInputStage.getBotIntelligence(),
-                            new MapParameters(parameterInputStage.getStartingPosition(),
+                            new MapParameters(parameterInputStage.getStartingPosition(),parameterInputStage.getNumberOfPlayers(),
                                     parameterInputStage.getSeedParam(),
                                     parameterInputStage.getMapSizeParam().getAmountOfTiles(),
                                     parameterInputStage.getMapDensityParam().getDensityFloat())));
                     newGamePrefDao.saveNewGamePreferences(new NewGamePreferences(
                             parameterInputStage.getBotIntelligence(), parameterInputStage.getMapSizeParam(),
-                            parameterInputStage.getMapDensityParam(), parameterInputStage.getStartingPosition()));
+                            parameterInputStage.getMapDensityParam(), parameterInputStage.getStartingPosition(), parameterInputStage.getNumberOfPlayers()));
                 })));
         // only the settings that visually change the map need to cause centering
         Stream.of(parameterInputStage.seedTextField, parameterInputStage.randomButton, parameterInputStage.sizeSelect,
@@ -614,6 +620,7 @@ public class IngameScreen extends GameScreen {
         parameterInputStage.sizeSelect.setSelectedIndex(prefs.getMapSize().ordinal());
         parameterInputStage.densitySelect.setSelectedIndex(prefs.getDensity().ordinal());
         parameterInputStage.startingPositionSelect.setSelectedIndex(prefs.getStartingPosition());
+        parameterInputStage.setNumberOfPlayers(prefs.getNumberOfPlayers());
     }
 
     public OrthographicCamera getCamera() {

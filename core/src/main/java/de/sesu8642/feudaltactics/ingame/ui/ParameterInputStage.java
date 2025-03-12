@@ -11,6 +11,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextField.TextFieldFilter.DigitsOnlyFi
 import com.badlogic.gdx.utils.viewport.Viewport;
 import de.sesu8642.feudaltactics.ingame.NewGamePreferences.Densities;
 import de.sesu8642.feudaltactics.ingame.NewGamePreferences.MapSizes;
+import de.sesu8642.feudaltactics.ingame.NewGamePreferences;
+import de.sesu8642.feudaltactics.ingame.NewGamePreferencesDao;
 import de.sesu8642.feudaltactics.lib.ingame.botai.Intelligence;
 import de.sesu8642.feudaltactics.menu.common.dagger.MenuViewport;
 import de.sesu8642.feudaltactics.menu.common.ui.CopyButton;
@@ -53,7 +55,13 @@ public class ParameterInputStage extends ResizableResettableStage {
     public static final long TOTAL_INPUT_HEIGHT = OUTER_PADDING_PX + 5 * INPUT_PADDING_PX + BUTTON_HEIGHT_PX
             + 6 * INPUT_HEIGHT_PX;
     private final Skin skin;
+    private final NewGamePreferencesDao newGamePrefDao;
     SelectBox<String> startingPositionSelect;
+    List<String> startingPositions; 
+    int numberOfPlayers;
+    TextButton minusButton; 
+    TextButton numberOfPlayersButton;
+    TextButton plusButton; 
     SelectBox<String> sizeSelect;
     SelectBox<String> densitySelect;
     SelectBox<String> difficultySelect;
@@ -69,11 +77,13 @@ public class ParameterInputStage extends ResizableResettableStage {
      *
      * @param viewport viewport for the stage
      * @param skin     game skin
+     * @param newGamePrefDao      dao for new game preferences
      */
     @Inject
-    public ParameterInputStage(@MenuViewport Viewport viewport, Skin skin) {
+    public ParameterInputStage(@MenuViewport Viewport viewport, Skin skin, NewGamePreferencesDao newGamePrefDao) {
         super(viewport);
         this.skin = skin;
+        this.newGamePrefDao = newGamePrefDao;
         initUi();
     }
 
@@ -84,9 +94,11 @@ public class ParameterInputStage extends ResizableResettableStage {
 
         // markup must be enabled in the font for this coloring to work
         // h is a hexagon chraracter in the font
-        List<String> startingPositions = MapRenderer.PLAYER_COLOR_PALETTE.stream()
+        startingPositions = MapRenderer.PLAYER_COLOR_PALETTE.stream()
                 .map(color -> String.format("[#%s]hhh", color.toString())).collect(Collectors.toList());
         startingPositionSelect.setItems(startingPositions.toArray(new String[0]));
+
+	Label numberOfPlayersLabel = new Label("Number of\nPlayers", skin.get(SkinConstants.FONT_OVERLAY, LabelStyle.class));
 
         Label difficultyLabel = new Label("CPU\nDifficulty", skin.get(SkinConstants.FONT_OVERLAY, LabelStyle.class));
         difficultySelect = new SelectBox<>(skin);
@@ -127,6 +139,20 @@ public class ParameterInputStage extends ResizableResettableStage {
         seedTable.add(seedTextField).colspan(2).fill().expand();
         seedTable.add(randomButton).height(INPUT_HEIGHT_PX).width(INPUT_HEIGHT_PX);
 
+
+        minusButton = new TextButton(" - ", skin);
+        NewGamePreferences prefs = newGamePrefDao.getNewGamePreferences();
+	numberOfPlayers =  prefs.getNumberOfPlayers();
+        numberOfPlayersButton = new TextButton(" "+String.valueOf(numberOfPlayers)+" ", skin);
+	numberOfPlayersButton.setDisabled(true);
+	
+        plusButton = new TextButton(" + ", skin);
+	Table numberOfPlayersTable = new Table();
+        numberOfPlayersTable.defaults().uniformX();
+        numberOfPlayersTable.add(minusButton).fillX().height(INPUT_HEIGHT_PX);
+        numberOfPlayersTable.add(numberOfPlayersButton).fillX().height(INPUT_HEIGHT_PX);
+        numberOfPlayersTable.add(plusButton).fillX().height(INPUT_HEIGHT_PX);
+	
         playButton = new TextButton("Play", skin);
 
         rootTable = new Table();
@@ -141,6 +167,9 @@ public class ParameterInputStage extends ResizableResettableStage {
         rootTable.row();
         rootTable.add(startingPositionLabel);
         rootTable.add(startingPositionSelect).fillX().minHeight(INPUT_HEIGHT_PX);
+        rootTable.row();
+        rootTable.add(numberOfPlayersLabel);
+	rootTable.add(numberOfPlayersTable).fillX();
         rootTable.row();
         rootTable.add(difficultyLabel);
         rootTable.add(difficultySelect).fillX();
@@ -196,6 +225,20 @@ public class ParameterInputStage extends ResizableResettableStage {
 
     public int getStartingPosition() {
         return startingPositionSelect.getSelectedIndex();
+    }
+
+    public int getNumberOfPlayers() {
+        return numberOfPlayers;
+    }
+
+    public void setNumberOfPlayers(int number) {
+	if ((number <= 1) || (number > MapRenderer.PLAYER_COLOR_PALETTE.size())) 
+	    number = MapRenderer.PLAYER_COLOR_PALETTE.size();
+	numberOfPlayers = number;
+        numberOfPlayersButton.setText(" "+String.valueOf(number)+" ");
+	if (number-1 < getStartingPosition())
+		startingPositionSelect.setSelectedIndex(number-1);
+        startingPositionSelect.setItems(startingPositions.subList(0,number).toArray(new String[0]));
     }
 
     @Override

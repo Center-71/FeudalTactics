@@ -40,9 +40,9 @@ public class MapParameters {
      * @param landMass         number of tiles to generate
      * @param density          map density to use for generation
      */
-    public MapParameters(int humanPlayerIndex, Long seed, int landMass, float density) {
+    public MapParameters(int humanPlayerIndex, int numberOfPlayers, Long seed, int landMass, float density) {
         this.players = new ArrayList<>();
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < numberOfPlayers; i++) {
             if (i == humanPlayerIndex) {
                 this.players.add(new Player(i, Type.LOCAL_PLAYER));
             } else {
