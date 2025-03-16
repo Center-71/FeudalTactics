@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-
+import java.util.stream.IntStream;
 /**
  * Helper class that is used to modify a {@link GameState} in a way that
  * respects the game rules and guarantees integrity.
@@ -155,15 +155,19 @@ public class GameStateHelper {
     }
 
     private static void sortPlayersByIncome(GameState gameState) {
-        gameState.getPlayers().sort((a, b) -> {
+	gameState.getPlayers().sort((a,b) -> a.getPlayerIndex() < b.getPlayerIndex()?-1:1);
+	List<Integer> ranks = IntStream.rangeClosed(0, gameState.getPlayers().size()-1).boxed().collect(Collectors.toList());
+        ranks.sort((a, b) -> {
             // if they are the same, it doesn't matter
             // TODO: eliminate this randomness
-            int incomeA = gameState.getKingdoms().stream().filter(kingdom -> kingdom.getPlayer() == a)
+            int incomeA = gameState.getKingdoms().stream().filter(kingdom -> kingdom.getPlayer().getPlayerIndex() == a)
                     .mapToInt(GameStateHelper::getKingdomIncome).sum();
-            int incomeB = gameState.getKingdoms().stream().filter(kingdom -> kingdom.getPlayer() == b)
+            int incomeB = gameState.getKingdoms().stream().filter(kingdom -> kingdom.getPlayer().getPlayerIndex()  == b)
                     .mapToInt(GameStateHelper::getKingdomIncome).sum();
             return incomeA > incomeB ? 1 : -1;
         });
+	gameState.getMap().forEach((key,tile) -> {tile.setPlayer(gameState.getPlayers().get(ranks.indexOf(tile.getPlayer().getPlayerIndex())));});
+	gameState.getKingdoms().stream().forEach(kingdom -> {kingdom.setPlayer(gameState.getPlayers().get(ranks.indexOf(kingdom.getPlayer().getPlayerIndex())));});
     }
 
     private static void generateTiles(GameState gameState, List<Player> players, float landMass, float density,
