@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 package de.sesu8642.feudaltactics.lib.gamestate;
-
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.reflect.ClassReflection;
 import de.sesu8642.feudaltactics.lib.gamestate.Player.Type;
@@ -14,6 +13,7 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.lang.Math;
 /**
  * Helper class that is used to modify a {@link GameState} in a way that
  * respects the game rules and guarantees integrity.
@@ -142,7 +142,7 @@ public class GameStateHelper {
         } while (!doesEveryPlayerHaveKingdom(gameState));
         createTrees(gameState, vegetationDensity, random);
         createCapitals(gameState);
-        sortPlayersByIncome(gameState);
+        assignPlayersByLandValue(gameState);
         createMoney(gameState);
     }
 
@@ -153,18 +153,18 @@ public class GameStateHelper {
         }
         return playersWithoutKingdoms.isEmpty();
     }
-
-    private static void sortPlayersByIncome(GameState gameState) {
+    
+    private static void assignPlayersByLandValue(GameState gameState) {
 	gameState.getPlayers().sort((a,b) -> a.getPlayerIndex() < b.getPlayerIndex()?-1:1);
 	List<Integer> ranks = IntStream.rangeClosed(0, gameState.getPlayers().size()-1).boxed().collect(Collectors.toList());
+	double[] values = new double[ranks.size()];
+	for (Kingdom kingdom: gameState.getKingdoms())
+		values [kingdom.getPlayer().getPlayerIndex()] += getKingdomValue(gameState, kingdom);
+
+		
+
         ranks.sort((a, b) -> {
-            // if they are the same, it doesn't matter
-            // TODO: eliminate this randomness
-            int incomeA = gameState.getKingdoms().stream().filter(kingdom -> kingdom.getPlayer().getPlayerIndex() == a)
-                    .mapToInt(GameStateHelper::getKingdomIncome).sum();
-            int incomeB = gameState.getKingdoms().stream().filter(kingdom -> kingdom.getPlayer().getPlayerIndex()  == b)
-                    .mapToInt(GameStateHelper::getKingdomIncome).sum();
-            return incomeA > incomeB ? 1 : -1;
+            return values[a] > values[b] ? 1 : -1;
         });
 	gameState.getMap().forEach((key,tile) -> {tile.setPlayer(gameState.getPlayers().get(ranks.indexOf(tile.getPlayer().getPlayerIndex())));});
 	gameState.getKingdoms().stream().forEach(kingdom -> {kingdom.setPlayer(gameState.getPlayers().get(ranks.indexOf(kingdom.getPlayer().getPlayerIndex())));});
@@ -944,7 +944,43 @@ public class GameStateHelper {
                         || ClassReflection.isAssignableFrom(PalmTree.class, tile.getContent().getClass())))
                 .count();
     }
+    
+    /**
+     * Returns all neighbor tiles for the given kingdom. May contain null
+     * if there are empty neighbor positions.
+     *
+     * @param kingdom 
+     * @return neighbor tiles
+     */
+    public static List<HexTile> getNeighborTiles(Map<Vector2, HexTile> map, Kingdom kingdom) {
+	List<HexTile> result = new ArrayList<>();
+	for (HexTile tile :kingdom.getTiles())
+		result.addAll(HexMapHelper.getNeighborTiles(map, tile));
+	result.removeAll(Collections.singleton(null));
+	result = result.stream().distinct().filter(tile -> tile.getKingdom() != kingdom ).collect(Collectors.toList());
+	return result;
+//	return result.stream().distinct().filter(tile -> tile.getKingdom() != kingdom ).toList();
+    }
 
+    /**
+     * Estimates a value of a kingdom for the purpose of sorting
+     *
+     * @param gamesstate 
+     * @param kingdom relevant kingdom
+     * @return value
+     */
+    public static double getKingdomValue(GameState gamestate, Kingdom kingdom) {
+	int income = getKingdomIncome(kingdom);
+	int kingdomSize=kingdom.getTiles().size(); 
+	int startingFunds =  Math.min(kingdomSize* 5, 20); 
+	List<HexTile> neighbors= getNeighborTiles(gamestate.getMap(),kingdom);
+	List<HexTile> unguardedNeighbors = neighbors.stream().filter(tile -> getProtectionLevel(gamestate,tile) == 0).collect(Collectors.toList());
+	int guardedNeighbors = neighbors.size() - unguardedNeighbors.size(); 
+	LOGGER.debug("in:" +income+" sf:"+startingFunds+" gn:"+guardedNeighbors);
+	return 7.0*income + Math.pow(startingFunds,1.5)-2.0*guardedNeighbors;
+
+    }
+    
     /**
      * Calculates the salaries a kingdom has to pay every turn.
      *
