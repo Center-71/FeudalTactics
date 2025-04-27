@@ -719,6 +719,7 @@ public class GameStateHelper {
             if (kingdom.getPlayer() == gameState.getActivePlayer()) {
                 kingdom.setSavings(kingdom.getSavings() + getKingdomIncome(kingdom));
                 if (kingdom.getSavings() < getKingdomSalaries(gameState, kingdom)) {
+			kingdom.setSavings(0);
                     // kill all units if they cannot get paid
                     for (HexTile tile : kingdom.getTiles()) {
                         if (tile.getContent() != null
