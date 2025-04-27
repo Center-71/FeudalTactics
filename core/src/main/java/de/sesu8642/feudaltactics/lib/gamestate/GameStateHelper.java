@@ -946,8 +946,7 @@ public class GameStateHelper {
     }
     
     /**
-     * Returns all neighbor tiles for the given kingdom. May contain null
-     * if there are empty neighbor positions.
+     * Returns all neighbor tiles for the given kingdom. 
      *
      * @param kingdom 
      * @return neighbor tiles
@@ -957,9 +956,8 @@ public class GameStateHelper {
 	for (HexTile tile :kingdom.getTiles())
 		result.addAll(HexMapHelper.getNeighborTiles(map, tile));
 	result.removeAll(Collections.singleton(null));
-	result = result.stream().distinct().filter(tile -> tile.getKingdom() != kingdom ).collect(Collectors.toList());
+	result = result.stream().distinct().filter(t -> t.getKingdom() != kingdom ).collect(Collectors.toList());
 	return result;
-//	return result.stream().distinct().filter(tile -> tile.getKingdom() != kingdom ).toList();
     }
 
     /**
@@ -976,8 +974,24 @@ public class GameStateHelper {
 	List<HexTile> neighbors= getNeighborTiles(gamestate.getMap(),kingdom);
 	List<HexTile> unguardedNeighbors = neighbors.stream().filter(tile -> getProtectionLevel(gamestate,tile) == 0).collect(Collectors.toList());
 	int guardedNeighbors = neighbors.size() - unguardedNeighbors.size(); 
-	LOGGER.debug("in:" +income+" sf:"+startingFunds+" gn:"+guardedNeighbors);
-	return 7.0*income + Math.pow(startingFunds,1.5)-2.0*guardedNeighbors;
+	List<HexTile> connectables=new ArrayList<>();
+	for (HexTile tile : unguardedNeighbors){
+		connectables.addAll(HexMapHelper.getNeighborTiles(gamestate.getMap(), tile));
+	}
+	connectables.removeAll(Collections.singleton(null));
+	
+	connectables = connectables.stream().distinct().filter(t -> t.getPlayer()==kingdom.getPlayer()).filter(t -> t.getKingdom()!=kingdom).collect(Collectors.toList());
+
+	List<Kingdom> connectableKingdoms=new ArrayList<>(); 	   for (HexTile tile : connectables){
+		connectableKingdoms.add(tile.getKingdom());
+	}
+	
+	connectableKingdoms.removeAll(Collections.singleton(null));
+	double connectableKingdomsValue = connectableKingdoms.stream().distinct().mapToDouble(k -> Math.pow(Math.min(k.getTiles().size(),4),1.25)).sum();
+	HexTile capital = kingdom.getCapitalTile();
+
+	LOGGER.debug("evaluting Kingdom "+capital.getPosition() +" in:" +income+" sf:"+startingFunds+" gn:"+guardedNeighbors+" cn:"+connectables.size()+" ck:"+ connectableKingdomsValue);
+	return 7.0*income + Math.pow(startingFunds,1.5)-2.0*guardedNeighbors + connectables.size() + connectableKingdomsValue ;
 
     }
     

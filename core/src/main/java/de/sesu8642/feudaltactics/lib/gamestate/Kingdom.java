@@ -2,6 +2,7 @@
 
 package de.sesu8642.feudaltactics.lib.gamestate;
 
+import com.badlogic.gdx.utils.reflect.ClassReflection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -44,10 +45,17 @@ public class Kingdom {
         this.player = player;
     }
 
+    public HexTile getCapitalTile() {
+	    for (HexTile tile : this.tiles)
+		    if (ClassReflection.isAssignableFrom(Capital.class, tile.getContent().getClass()))
+			    return tile;
+        return null;
+    }
+
     public int getSavings() {
         return savings;
     }
-
+    
     public void setSavings(int savings) {
         this.savings = savings;
     }
