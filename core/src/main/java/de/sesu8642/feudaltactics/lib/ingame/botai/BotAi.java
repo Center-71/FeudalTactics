@@ -449,7 +449,7 @@ public class BotAi {
 
     private Optional<HexTile> findEmptyOrTreeTileInActiveKingdom(GameState gameState) {
         return gameState.getActiveKingdom().getTiles().stream().filter(tile -> tile.getContent() == null
-                || ClassReflection.isAssignableFrom(Tree.class, tile.getContent().getClass())).findFirst();
+                || ClassReflection.isAssignableFrom(OakTree.class, tile.getContent().getClass())).findFirst();
     }
 
     private void sellCastles(Kingdom kingdom, Set<HexTile> placedCastleTiles) {
@@ -502,7 +502,7 @@ public class BotAi {
     private int getBlockingObjectRemovalScore(GameState gameState, HexTile tile) {
         if (PalmTree.class.isAssignableFrom(tile.getContent().getClass())) {
             return getPalmTreeRemovalScore(gameState, tile);
-        } else if (Tree.class.isAssignableFrom(tile.getContent().getClass())) {
+        } else if (OakTree.class.isAssignableFrom(tile.getContent().getClass())) {
             return getRegularTreeRemovalScore(gameState, tile);
         } else if (Gravestone.class.isAssignableFrom(tile.getContent().getClass())) {
             return getGraveStoneRemovalScore(gameState, tile);
@@ -532,7 +532,7 @@ public class BotAi {
                     hasSpaceToSpread = true;
                 }
                 if (neighborTile.getContent() != null
-                        && Tree.class.isAssignableFrom(neighborTile.getContent().getClass())) {
+                        && OakTree.class.isAssignableFrom(neighborTile.getContent().getClass())) {
                     hasPartnerTree = true;
                 }
             }

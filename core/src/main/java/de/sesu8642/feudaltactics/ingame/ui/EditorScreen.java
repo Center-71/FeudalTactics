@@ -45,7 +45,7 @@ public class EditorScreen extends GameScreen {
 
     List<TileContent> possibleTileContents = ImmutableList.of(new Unit(Unit.UnitTypes.PEASANT),
             new Unit(Unit.UnitTypes.SPEARMAN), new Unit(Unit.UnitTypes.KNIGHT), new Unit(Unit.UnitTypes.BARON),
-            new Tree(), new Castle());
+            new Castle());
 
     /**
      * Tile content for the hand, if a tile content is to be placed.

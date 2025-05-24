@@ -20,7 +20,7 @@ import java.lang.Math;
  **/
 public class GameStateHelper {
 
-    public static final float DEAFULT_INITIAL_TREE_DENSITY = 0.1F;
+    public static final float DEFAULT_INITIAL_TREE_DENSITY = 0.1F;
     public static final float WIN_LANDMASS_PERCENTAGE = 0.8F;
     private static final Logger LOGGER = LoggerFactory.getLogger(GameStateHelper.class);
 
@@ -120,7 +120,7 @@ public class GameStateHelper {
             mapSeed = System.currentTimeMillis();
         }
         if (vegetationDensity == null) {
-            vegetationDensity = DEAFULT_INITIAL_TREE_DENSITY;
+            vegetationDensity = DEFAULT_INITIAL_TREE_DENSITY;
         }
         gameState.setSeed(mapSeed);
         gameState.setPlayers(players);
@@ -299,7 +299,7 @@ public class GameStateHelper {
     private static void createTrees(GameState gameState, float vegetationDensity, Random random) {
         for (HexTile tile : gameState.getMap().values()) {
             if (random.nextFloat() <= vegetationDensity) {
-                spawnTree(gameState, tile);
+                spawnOak(gameState, tile);
             }
         }
     }
@@ -748,50 +748,31 @@ public class GameStateHelper {
 
     private static void spreadTrees(GameState gameState) {
         Random random = new Random(gameState.hashCode());
-        // keep track of the tiles with trees that are new or have already participated
-        // in spreading; those shouldn't spread again in that turn
-        HashSet<HexTile> tileBlackList = new HashSet<>();
+        HashSet<HexTile> newOaks = new HashSet<>();
+        HashSet<HexTile> newPalms = new HashSet<>();
         for (HexTile tile : gameState.getMap().values()) {
-            if (tileBlackList.contains(tile)) {
+            if (tile.getContent() != null){
                 continue;
-            }
-            if (tile.getContent() != null
-                    && ClassReflection.isAssignableFrom(Tree.class, tile.getContent().getClass())) {
-                // regular trees spread if they have another regular tree next to them
-                ArrayList<HexTile> candidates = new ArrayList<>();
-                HexTile neighborTreeTile = null;
-                for (HexTile neighbor : HexMapHelper.getNeighborTiles(gameState.getMap(), tile)) {
-                    if (neighbor == null) {
-                        continue;
-                    }
-                    if (neighbor.getContent() == null && !isCoastTile(gameState, neighbor)) {
-                        candidates.add(neighbor);
-                    } else if (neighbor.getContent() != null
-                            && ClassReflection.isAssignableFrom(Tree.class, neighbor.getContent().getClass())
-                            && !tileBlackList.contains(neighbor)) {
-                        neighborTreeTile = neighbor;
-                    }
-                }
-                if (neighborTreeTile != null && !candidates.isEmpty()) {
-                    HexTile newTreeTile = candidates.get(random.nextInt(candidates.size()));
-                    spawnTree(gameState, newTreeTile);
-                    tileBlackList.add(tile);
-                    tileBlackList.add(newTreeTile);
-                    tileBlackList.add(neighborTreeTile);
-                    candidates.clear();
-                }
-            } else if (tile.getContent() != null
-                    && ClassReflection.isAssignableFrom(PalmTree.class, tile.getContent().getClass())) {
-                // palm trees always spread to a neighboring coast tile, if any
-                HexMapHelper
-                        .getNeighborTiles(gameState.getMap(), tile).stream().filter(neighbor -> neighbor != null
-                                && neighbor.getContent() == null && isCoastTile(gameState, neighbor))
-                        .limit(1).forEach(newTreeTile -> {
-                            spawnTree(gameState, newTreeTile);
-                            tileBlackList.add(newTreeTile);
-                        });
-            }
+	    }
+	    List<HexTile> neighbors =HexMapHelper.getNeighborTiles(gameState.getMap(), tile);
+
+	    List<HexTile> neighborTrees=neighbors.stream().filter(neighbor -> neighbor != null).filter(neighbor -> ((neighbor.getContent()!=null) && ClassReflection.isAssignableFrom(Tree.class, neighbor.getContent().getClass()))).collect(Collectors.toList());
+	    if (neighborTrees.isEmpty())
+		    continue;
+	    if (isCoastTile(gameState, tile) && (neighborTrees.stream().filter(tree ->  ClassReflection.isAssignableFrom( tree.getContent().getClass(),PalmTree.class)).count() >0)) {
+                // palm trees grow on coast tiles neighboringother palm trees 
+		    newPalms.add(tile);
+		};
+	    if (neighborTrees.stream().filter(tree ->  ClassReflection.isAssignableFrom( tree.getContent().getClass(),OakTree.class)).count() >1) {
+                // oak trees grow on tiles neighboring two oaks
+		    newOaks.add(tile);
+		};
+
         }
+	for (HexTile tile : newPalms)
+		spawnTree(gameState, tile);
+	for (HexTile tile : newOaks)
+		spawnOak(gameState, tile);
     }
 
     private static void progressBlockingObjects(GameState gameState, Player player) {
@@ -810,13 +791,20 @@ public class GameStateHelper {
     }
 
     /**
-     * Spawns a regular or palm tree depending on the position.
+     * Spawns an oak tree.
+     */
+    private static void spawnOak(GameState gameState, HexTile tile) {
+	tile.setContent(new OakTree());
+    }
+
+    /**
+     * Spawns an oak or palm tree depending on the position.
      */
     private static void spawnTree(GameState gameState, HexTile tile) {
         if (isCoastTile(gameState, tile)) {
             tile.setContent(new PalmTree());
         } else {
-            tile.setContent(new Tree());
+            tile.setContent(new OakTree());
         }
     }
 
@@ -942,8 +930,7 @@ public class GameStateHelper {
         return kingdom.getTiles().size() - (int) kingdom.getTiles().stream()
                 .filter(tile -> tile.getContent() != null
                         && (ClassReflection.isAssignableFrom(Tree.class, tile.getContent().getClass())
-                        || ClassReflection.isAssignableFrom(PalmTree.class, tile.getContent().getClass())))
-                .count();
+			   )).count();
     }
     
     /**
@@ -1041,8 +1028,7 @@ public class GameStateHelper {
                             hasPeasant = true;
                         }
                     } else if (tile.getContent() != null
-                            && (ClassReflection.isAssignableFrom(Tree.class, tile.getContent().getClass())
-                            || ClassReflection.isAssignableFrom(PalmTree.class, tile.getContent().getClass()))) {
+                            && (ClassReflection.isAssignableFrom(Tree.class, tile.getContent().getClass()))) {
                         hasTree = true;
                     }
                 }
